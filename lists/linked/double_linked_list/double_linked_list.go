@@ -1,17 +1,20 @@
-package single_linked
+package double_linked
 
 import (
 	//"github.com/unlockedmutex/structures/list"
 	"slices"
+        "fmt"
 )
 
 type Node struct {
 	data interface{}
 	next *Node
+	prev *Node
 }
 
 type List struct {
 	head *Node
+	tail *Node
 	size int
 }
 
@@ -48,6 +51,22 @@ func (l *List) ToSlice() []interface{} {
 	return a
 }
 
+func (l *List) nodeAtIndex(index int) *Node {
+        var curr *Node
+	if index <= l.size/2 {
+		curr = l.head
+		for i := 0; i < index-1 && curr.next != nil; i++ {
+			curr = curr.next
+		}
+	} else {
+		curr = l.tail
+		for i := 0; i < l.size-index-1 && curr.prev != nil; i++ {
+			curr = curr.prev
+		}
+	}
+        return curr
+}
+
 // Adding, Inserting, Removing
 func (l *List) Append(value interface{}) {
 	newNode := &Node{data: value}
@@ -55,15 +74,16 @@ func (l *List) Append(value interface{}) {
 
 	if l.head == nil {
 		l.head = newNode
+		l.tail = newNode
 		return
 	}
 
-	curr := l.head
-	for curr.next != nil {
-		curr = curr.next
-	}
+	curr := l.tail
 
 	curr.next = newNode
+	newNode.prev = curr
+
+	l.tail = newNode
 }
 
 func (l *List) InsertAtIndex(value interface{}, index int) {
@@ -84,17 +104,23 @@ func (l *List) InsertAtIndexUnchecked(value interface{}, index int) {
 
 	if l.head == nil && index == 0 {
 		l.head = newNode
+		l.tail = newNode
 		return
 	}
+        curr := l.nodeAtIndex(index)
 
-	curr := l.head
-	for i := 0; i < index-1 && curr.next != nil; i++ {
-		curr = curr.next
-	}
+	currNext := curr.next
+        if currNext != nil {
+            currNext.prev = newNode
+            newNode.next = currNext
+        } else {
+                        l.tail = newNode
+                    }
 
-	prevNext := curr.next
+
 	curr.next = newNode
-	newNode.next = prevNext
+        newNode.prev = curr
+
 }
 
 func (l *List) Remove(value interface{}) {
@@ -132,10 +158,7 @@ func (l *List) RemoveAtIndexUnchecked(index int) {
 		return
 	}
 
-	curr := l.head
-	for i := 0; i < index-1 && curr.next != nil; i++ {
-		curr = curr.next
-	}
+        curr := l.nodeAtIndex(index)
 
 	if curr.next != nil {
 		curr.next = curr.next.next
@@ -156,7 +179,7 @@ func (l *List) GetUnchecked(index int) interface{} {
 	return curr.data
 }
 
-func (l *List) find(value interface{}) int {
+func (l *List) Find(value interface{}) int {
 	curr := l.head
 	for i := 0; i < l.size; i++ {
 		if curr.data == value {
@@ -167,10 +190,31 @@ func (l *List) find(value interface{}) int {
 	return -1
 }
 
-func (l *List) sort(less func(i, j interface{}) int) {
+func (l *List) Sort(less func(i, j interface{}) int) {
 	//TODO: Optimize to be actual sort.
 	//TODO: Measure speed between this + different implementations
 	a := l.ToSlice()
 	slices.SortFunc(a, less)
 	l = FromSlice(a)
+}
+
+func (l *List) String() string{
+    printstr := ""
+    curr := l.head
+	for i := 0; i < l.size; i++ {
+            printstr = printstr + "->" + fmt.Sprintf(`%v`, curr.data)
+		curr = curr.next
+	}
+    return printstr
+}
+
+// For testing purposes
+func (l *List) StringBackwards() string{
+    printstr := ""
+    curr := l.tail
+	for i := 0; i < l.size; i++ {
+            printstr = printstr + "<-" + fmt.Sprintf(`%v`, curr.data)
+		curr = curr.prev
+	}
+    return printstr
 }
