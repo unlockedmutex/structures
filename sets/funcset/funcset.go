@@ -1,4 +1,4 @@
-package mapset
+package funcset
 
 import (
 	//"github.com/unlockedmutex/structures/list"
