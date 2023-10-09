@@ -1,6 +1,5 @@
 package list
 
-
 type List interface {
 	Get(index int) (interface{}, bool)
 	Remove(index int)
@@ -20,5 +19,3 @@ type List interface {
 	// Values() []interface{}
 	// String() string
 }
-
-

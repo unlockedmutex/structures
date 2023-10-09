@@ -2,8 +2,8 @@ package double_linked
 
 import (
 	//"github.com/unlockedmutex/structures/list"
+	"fmt"
 	"slices"
-        "fmt"
 )
 
 type Node struct {
@@ -52,7 +52,7 @@ func (l *List) ToSlice() []interface{} {
 }
 
 func (l *List) nodeAtIndex(index int) *Node {
-        var curr *Node
+	var curr *Node
 	if index <= l.size/2 {
 		curr = l.head
 		for i := 0; i < index-1 && curr.next != nil; i++ {
@@ -64,7 +64,7 @@ func (l *List) nodeAtIndex(index int) *Node {
 			curr = curr.prev
 		}
 	}
-        return curr
+	return curr
 }
 
 // Adding, Inserting, Removing
@@ -107,19 +107,18 @@ func (l *List) InsertAtIndexUnchecked(value interface{}, index int) {
 		l.tail = newNode
 		return
 	}
-        curr := l.nodeAtIndex(index)
+	curr := l.nodeAtIndex(index)
 
 	currNext := curr.next
-        if currNext != nil {
-            currNext.prev = newNode
-            newNode.next = currNext
-        } else {
-                        l.tail = newNode
-                    }
-
+	if currNext != nil {
+		currNext.prev = newNode
+		newNode.next = currNext
+	} else {
+		l.tail = newNode
+	}
 
 	curr.next = newNode
-        newNode.prev = curr
+	newNode.prev = curr
 
 }
 
@@ -158,7 +157,7 @@ func (l *List) RemoveAtIndexUnchecked(index int) {
 		return
 	}
 
-        curr := l.nodeAtIndex(index)
+	curr := l.nodeAtIndex(index)
 
 	if curr.next != nil {
 		curr.next = curr.next.next
@@ -198,23 +197,23 @@ func (l *List) Sort(less func(i, j interface{}) int) {
 	l = FromSlice(a)
 }
 
-func (l *List) String() string{
-    printstr := ""
-    curr := l.head
+func (l *List) String() string {
+	printstr := ""
+	curr := l.head
 	for i := 0; i < l.size; i++ {
-            printstr = printstr + "->" + fmt.Sprintf(`%v`, curr.data)
+		printstr = printstr + "->" + fmt.Sprintf(`%v`, curr.data)
 		curr = curr.next
 	}
-    return printstr
+	return printstr
 }
 
 // For testing purposes
-func (l *List) StringBackwards() string{
-    printstr := ""
-    curr := l.tail
+func (l *List) StringBackwards() string {
+	printstr := ""
+	curr := l.tail
 	for i := 0; i < l.size; i++ {
-            printstr = printstr + "<-" + fmt.Sprintf(`%v`, curr.data)
+		printstr = printstr + "<-" + fmt.Sprintf(`%v`, curr.data)
 		curr = curr.prev
 	}
-    return printstr
+	return printstr
 }

@@ -126,9 +126,7 @@ func TestInsertAtIndexUnchecked(t *testing.T) {
 	l.InsertAtIndexUnchecked(200, 4)
 	l.InsertAtIndexUnchecked(300, 7)
 
-
 	values := [8]int{4, 3, 100, 2, 200, 1, 0, 300}
-
 
 	for i := 0; i < 8; i++ {
 		if l.Get(i) != values[i] {
