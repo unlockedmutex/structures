@@ -8,36 +8,35 @@ import (
 // empty structs take no memory
 type void struct{}
 
-type hashfunc func(interface{}) int
+type hashfunc func(interface{}) interface{}
 
 // keys are ints, values are the members of the set
 // users need to pass in a hashfunc
 type Set struct {
-	members map[int]interface{}
-	size    int
+	members map[interface{}]interface{}
 	hasher  hashfunc
 }
 
-// hashfunc does not need to be an actual hash
+// hashfunc does not need to return an actual hash
 // it can be anything that is an int, such as user IDs
 func New(hasher hashfunc) *Set {
 	var s Set
 	s.hasher = hasher
-	s.members = make(map[int]interface{})
+	s.members = make(map[interface{}]interface{})
 	return &s
 }
 
-func FromSlice(values ...interface{}) *Set {
-	var s Set
-	for v := range values {
-		s.Add(v)
-		s.size++
+func FromSlice(hasher hashfunc, values ...interface{}) *Set {
+	s := New(hasher)
+	for value := range values {
+		hashed := s.hasher(value)
+		s.members[hashed] = value
 	}
-	return &s
+	return s
 }
 
 func (s *Set) ToSlice() []interface{} {
-	a := make([]interface{}, s.size)
+	a := make([]interface{}, s.Size())
 	i := 0
 	for _, value := range s.members {
 		a[i] = value
@@ -46,71 +45,21 @@ func (s *Set) ToSlice() []interface{} {
 	return a
 }
 
-func (s *Set) Add(value interface{}) {
-	fmt.Printf(`%v`, value)
-	fmt.Printf(`%v`, s.hasher)
+// Returns True if member already existed
+func (s *Set) Add(value interface{}) bool {
 	hashed := s.hasher(value)
 	_, exists := s.members[hashed]
-	if !exists {
-		s.AddUnchecked(value, hashed)
-	} else {
-		panic(fmt.Sprintf(`Inserting member with duplicate hash value: %d`, s.hasher(value)))
-	}
-}
-
-func (s *Set) AddUnchecked(value interface{}, hashed int) {
 	s.members[hashed] = value
-	s.size++
-}
-
-func (s *Set) Remove(value interface{}) {
-	hashed := s.hasher(value)
-	_, exists := s.members[hashed]
-	if exists {
-		s.RemoveUnchecked(value, hashed)
-	} else {
-		panic(fmt.Sprintf(`Removing member with hash value not in set: %d`, s.hasher(value)))
-	}
-}
-
-func (s *Set) RemoveIfExists(value interface{}) bool {
-	hashed := s.hasher(value)
-	_, exists := s.members[hashed]
-	if exists {
-		s.RemoveUnchecked(value, hashed)
-	}
 	return exists
 }
 
-func (s *Set) RemoveUnchecked(value interface{}, hashed int) {
-	// Will cause panic if removing member not in set
-	delete(s.members, hashed)
-	s.size--
-}
-
-func (s *Set) Update(value interface{}) {
+// Returns True if member already existed
+func (s *Set) Remove(value interface{}) bool {
 	hashed := s.hasher(value)
 	_, exists := s.members[hashed]
 	if exists {
-		s.UpdateUnchecked(value, hashed)
-	} else {
-		panic(fmt.Sprintf(`Updating member with hash value not in set: %d`, hashed))
+		delete(s.members, hashed)
 	}
-}
-
-func (s *Set) UpdateIfExists(value interface{}) bool {
-	hashed := s.hasher(value)
-	_, exists := s.members[hashed]
-	if exists {
-		return s.UpdateUnchecked(value, hashed)
-	} else {
-		return false
-	}
-}
-
-func (s *Set) UpdateUnchecked(value interface{}, hashed int) bool {
-	_, exists := s.members[hashed]
-	s.members[hashed] = value
 	return exists
 }
 
@@ -120,26 +69,63 @@ func (s *Set) Exists(value interface{}) bool {
 	return exists
 }
 
-func (s *Set) Get(hashed int) interface{} {
-	_, exists := s.members[hashed]
-	if exists {
-		return s.GetUnchecked(hashed)
-	} else {
-		panic(fmt.Sprintf(`Getting member with hash value not in set: %d`, hashed))
-	}
+func (s *Set) Get(hashed interface{}) interface{} {
+	member, _ := s.members[hashed]
+	return member
 }
 
-func (s *Set) GetIfExists(hashed int) (interface{}, bool) {
-	_, exists := s.members[hashed]
-	if exists {
-		return s.GetUnchecked(hashed), true
-	} else {
-		return nil, false
+// If any hashes collide, s2 values overwride s1 values
+func (s1 *Set) Union(s2 *Set) *Set {
+	// Weird but checks if function addresses are the same
+	if fmt.Sprintf(`%v`, s1.hasher) != fmt.Sprintf(`%v`, s2.hasher) {
+		panic(fmt.Sprintf(`Union of two sets with different hash functions`))
 	}
+	ret := New(s1.hasher)
+	for hashed, member := range s1.members {
+		ret.members[hashed] = member
+	}
+	for hashed, member := range s2.members {
+		ret.members[hashed] = member
+	}
+	return ret
 }
 
-func (s *Set) GetUnchecked(hashed int) interface{} {
-	return s.members[hashed]
+// If any hashes collide, s2 values overwride s1 values
+func (s1 *Set) Intersection(s2 *Set) *Set {
+	// Weird but checks if function addresses are the same
+	if fmt.Sprintf(`%v`, s1.hasher) != fmt.Sprintf(`%v`, s2.hasher) {
+		panic(fmt.Sprintf(`Intersection of two sets with different hash functions`))
+	}
+	ret := New(s1.hasher)
+	for hashed, member := range s2.members {
+		if s1.Exists(hashed) {
+			ret.members[hashed] = member
+		}
+	}
+	return ret
+}
+
+func (s1 *Set) Difference(s2 *Set) *Set {
+	// Weird but checks if function addresses are the same
+	if fmt.Sprintf(`%v`, s1.hasher) != fmt.Sprintf(`%v`, s2.hasher) {
+		panic(fmt.Sprintf(`Intersection of two sets with different hash functions`))
+	}
+	ret := New(s1.hasher)
+	for hashed, member := range s1.members {
+		if !s2.Exists(hashed) {
+			ret.members[hashed] = member
+		}
+	}
+	for hashed, member := range s2.members {
+		if !s1.Exists(hashed) {
+			ret.members[hashed] = member
+		}
+	}
+	return ret
+}
+
+func (s *Set) Size() int {
+	return len(s.members)
 }
 
 func (s *Set) String() string {
